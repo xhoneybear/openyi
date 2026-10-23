@@ -40,8 +40,7 @@ enum class Step {
     WELCOME,
     CONNECT,
     EXTRA,
-    FINISH,
-    DONE;
+    FINISH;
     
     fun prev(): Step? =
         entries[ordinal - 1]
@@ -90,7 +89,6 @@ fun PageIndicator(currentStep: Step?) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Step.entries
-            .filter { it != Step.DONE }
             .forEach { step ->
                 Box(
                     modifier = Modifier
@@ -159,7 +157,7 @@ fun Intro(
                 ) {
                     Button(
                         onClick = {
-                            if (currentRoute == Step.DONE.name) {
+                            if (currentRoute == Step.FINISH.name) {
                                 onFinish()
                             } else {
                                 val nextStep = currentRoute?.let { Step.valueOf(it) }?.next()

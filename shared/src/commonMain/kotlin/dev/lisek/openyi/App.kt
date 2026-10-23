@@ -33,7 +33,6 @@ import openyi.shared.generated.resources.compose_multiplatform
 @Preview
 fun App() {
     val storage = AppStorage()
-    storage.showIntro = true    // Reset the intro flag for testing purposes
 
     val showIntro = remember { mutableStateOf(storage.showIntro) }
     val navController = rememberNavController()
