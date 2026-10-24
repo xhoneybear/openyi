@@ -6,11 +6,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddAPhoto
@@ -41,10 +46,10 @@ enum class Step {
     CONNECT,
     EXTRA,
     FINISH;
-    
+
     fun prev(): Step? =
         entries[ordinal - 1]
-    
+
     fun next(): Step? =
         entries[ordinal + 1]
 }
@@ -117,6 +122,25 @@ fun Intro(
             .value?.destination?.route
 
     Scaffold(
+        modifier = Modifier.windowInsetsPadding(
+            WindowInsets
+                .safeContent
+                .only(WindowInsetsSides.Vertical)
+        ),
+        topBar = {
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
+                TextButton(
+                    onClick = onFinish
+                ) {
+                    Text("Skip setup")
+                }
+            }
+        },
         bottomBar = {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -169,20 +193,6 @@ fun Intro(
                     ) {
                         Text(if (currentRoute == Step.FINISH.name) "Finish" else "Next")
                     }
-                }
-            }
-        },
-        topBar = {
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                TextButton(
-                    onClick = onFinish
-                ) {
-                    Text("Skip setup")
                 }
             }
         }
