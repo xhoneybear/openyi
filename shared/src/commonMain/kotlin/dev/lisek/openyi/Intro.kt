@@ -17,12 +17,6 @@ import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddAPhoto
-import androidx.compose.material.icons.rounded.Camera
-import androidx.compose.material.icons.rounded.RocketLaunch
-import androidx.compose.material.icons.rounded.Sensors
-import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +34,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.roundedfilled.Add_a_photo
+import com.composables.icons.materialsymbols.roundedfilled.Camera
+import com.composables.icons.materialsymbols.roundedfilled.Rocket_launch
+import com.composables.icons.materialsymbols.roundedfilled.Sensors
+import com.composables.icons.materialsymbols.roundedfilled.Wifi
 
 enum class Step {
     WELCOME,
@@ -207,7 +207,7 @@ fun Intro(
         ) {
             composable(Step.WELCOME.name) {
                 Panel(
-                    icon = Icons.Rounded.Camera,
+                    icon = MaterialSymbols.RoundedFilled.Camera,
                     title = "Welcome to OpenYi!",
                     content = {
                         IntroText("A modern application for controlling your Xiaoyi Action Camera.")
@@ -217,7 +217,7 @@ fun Intro(
             }
             composable(Step.CONNECT.name) {
                 Panel(
-                    icon = Icons.Rounded.Wifi,
+                    icon = MaterialSymbols.RoundedFilled.Wifi,
                     title = "Connect your camera",
                     content = {
                         var isConnected: Boolean? = null
@@ -290,7 +290,7 @@ fun Intro(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Sensors,
+                                    imageVector = MaterialSymbols.RoundedFilled.Sensors,
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(28.dp)
@@ -310,7 +310,7 @@ fun Intro(
             }
             composable(Step.EXTRA.name) {
                 Panel(
-                    icon = Icons.Rounded.AddAPhoto,
+                    icon = MaterialSymbols.RoundedFilled.Add_a_photo,
                     title = "Your camera can do more",
                     content = {
                         var telnetStatus: Boolean? = null
@@ -385,7 +385,7 @@ fun Intro(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Sensors,
+                                    imageVector = MaterialSymbols.RoundedFilled.Sensors,
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(28.dp)
@@ -406,7 +406,7 @@ fun Intro(
             }
             composable(Step.FINISH.name) {
                 Panel(
-                    icon = Icons.Rounded.RocketLaunch,
+                    icon = MaterialSymbols.RoundedFilled.Rocket_launch,
                     title = "You're all set!",
                     content = {
                         IntroText("The camera is set up and ready to use.")
