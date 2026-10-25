@@ -1,31 +1,89 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# OpenYi
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+### A companion app for Yi Action Camera.
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+OpenYi is a cross-platform alternative application for the Yi Action Camera. It is designed to be a modern replacement for the official Yi Action app on modern operating systems, with extended functionality for deep control of the camera.
 
-### Running the apps
+> [!WARNING]
+>
+> **OpenYi** has features that allow direct interfacing with Ambarella SoC's internal partition. While most settings should be safe, direct FTP access or saving untested configurations to internal memory may cause your camera to irreversibly bootloop.
+>
+> Appropriate warnings are displayed when accessing potentially unsafe features. **Safety of your camera lies in your hands to use those features carefully**.
+>
+> #### The developer assumes no liability for any damage caused by the use of this application.
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+## Features
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+### Basic
 
-### Running tests
+- Live preview
+- Status monitoring (battery, SD card)
+- Remote control
+- Self-timer
+- Media management
+- SD card formatting
+- Camera lights on/off
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+### Extended
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
-- iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+- Direct filesystem access
+- Advanced logging
+- Persistent configurations
+- Loadable camera presets (profiles)
+- Button remapping and keybinding
+- ISO and shutter speed control
+- Image processing and manipulation
+- Resolution and bitrate adjustment
+- RAW file format
+- STA network mode
 
----
+...and much more.
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+> [!IMPORTANT]
+>
+> Extended features are accessible after enabling telnet on your camera. This is done by placing an empty file named `enable_info_display.script` (Yi Action 1080p) or `console_enable.script` (Yi Action 4K/4K+) in the root directory of the SD card.
+>
+> The app will guide you through this process during onboarding and in settings.
+
+## Compatibility
+
+### Full
+
+- Yi Action Camera 1080p (firmware 1.2.13)
+
+### Partial
+
+- Yi Action Camera 1080p (other firmware versions)
+- Yi Action Camera 4K
+- Yi Action Camera 4K+
+
+> [!NOTE]
+> Partial support excludes support for some advanced features that rely on memory injection, such as bitrate and resolution control. Basic features and most of the extended features should work fine.
+
+#### Full support for all Yi Action Cameras across all firmware versions is a goal and will be extended in future versions of the software. Contributions are very much welcome.
+
+While not a primary goal, other cameras based on the Ambarella SoCs (like older GoPro Hero models) are very much welcome to be supported via community contributions.
+
+## Building
+
+\<TBD>
+
+## Contributing
+
+### Thank you for contributing to OpenYi!
+
+Contribution guidelines are minimal and mostly handled by Git hooks.
+
+### Requirements:
+
+- **Keep changes minimal**: clear, simple code with one feature or fix per pull request.
+- **Maintain UI integrity**: frontend changes must conform to the existing visual language and layout standards.
+- **Ensure stability**: code must build cleanly and pass all automated tests and validation checks.
+- **Commit messages**: use imperative mood (`Add feature`, not `Added feature`), 80 characters or fewer per line; Conventional Commits preferred.
+- **Document intent**: clearly state what the change does in the title, and describe the motivation in detail in the PR description.
+
+## DISCLAIMER
+
+**OpenYi** is an independent, open-source project and is not affiliated, associated, authorized, endorsed by, or in any way officially connected with YI Technology Inc., Xiaomi Group, or any of their subsidiaries or affiliates. 
+
+All product names, trademarks, and registered trademarks mentioned are property of their respective owners and are used solely for identification and interoperability purposes.
