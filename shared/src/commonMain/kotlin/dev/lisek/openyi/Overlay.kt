@@ -57,13 +57,13 @@ enum class BatteryLevel(val icon: ImageVector, val chargingIcon: ImageVector) {
     
     fun classify(level: Int): BatteryLevel {
         return when {
-            level > 90 -> B_100
-            level > 80 -> B_90
-            level > 60 -> B_80
-            level > 50 -> B_60
-            level > 30 -> B_50
-            level > 20 -> B_30
-            level > 10 -> B_20
+            level == 100 -> B_100
+            level > 90 -> B_90
+            level > 80 -> B_80
+            level > 60 -> B_60
+            level > 50 -> B_50
+            level > 30 -> B_30
+            level > 20 -> B_20
             level >= 0 -> B_0
             else -> UNKNOWN
         }

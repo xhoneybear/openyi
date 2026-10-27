@@ -196,6 +196,7 @@ fun Control() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 8.dp)
                     .windowInsetsPadding(
                         WindowInsets
                             .safeContent
@@ -249,25 +250,26 @@ fun Control() {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .aspectRatio(1f)
-                        .border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-                        .padding(8.dp)
-                        .weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Button(
-                        modifier = Modifier.fillMaxSize(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (recordMode) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            }
-                        ),
-                        shape = CircleShape,
-                        onClick = { /* Handle capture click */ }
-                    ) {}
+                    Row(modifier = Modifier
+                        .size(64.dp)
+                        .border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
+                        .padding(6.dp)
+                    ) {
+                        Button(
+                            modifier = Modifier.fillMaxSize(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (recordMode) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                            ),
+                            shape = CircleShape,
+                            onClick = { /* Handle capture click */ }
+                        ) {}
+                    }
                 }
                 Row(
                     horizontalArrangement = Arrangement.Center,
