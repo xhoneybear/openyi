@@ -25,140 +25,42 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Representation of a JSON response received from the Yi Action Camera on TCP port 7878.
  */
-data class CameraResponse(
-    val rawJson: String,
+@Serializable
+data class CameraPacket(
+    @SerialName("msg_id")
     val msgId: Int? = null,
     val rval: Int? = null,
-    val param: String? = null,
+    val param: JsonElement? = null,
     val token: Int? = null,
     val type: String? = null
 ) {
     val isSuccess: Boolean
         get() = rval == 0
 
-    val paramAsInt: Int?
-        get() = param?.trim('"', ' ')?.toIntOrNull()
+    val intParam: Int?
+        get() = param?.jsonPrimitive?.content?.toIntOrNull()
 
-    val paramAsString: String?
-        get() = param?.trim('"', ' ')
+    val strParam: String?
+        get() = param?.jsonPrimitive?.content
+
+    override fun toString(): String {
+        return Json.encodeToString(this)
+    }
 
     companion object {
-        fun extractInt(json: String, key: String): Int? {
-            val regex = Regex("\"$key\"\\s*:\\s*(-?\\d+)")
-            return regex.find(json)?.groupValues?.get(1)?.toIntOrNull()
-        }
-
-        fun extractString(json: String, key: String): String? {
-            val regex = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"")
-            return regex.find(json)?.groupValues?.get(1)
-        }
-
-        fun extractValue(json: String, key: String): String? {
-            val keyIndex = json.indexOf("\"$key\"")
-            if (keyIndex == -1) return null
-            val colonIndex = json.indexOf(':', keyIndex + key.length + 2)
-            if (colonIndex == -1) return null
-            var i = colonIndex + 1
-            while (i < json.length && json[i].isWhitespace()) {
-                i++
-            }
-            if (i >= json.length) return null
-            val firstChar = json[i]
-            return when (firstChar) {
-                '"' -> {
-                    val start = i
-                    i++
-                    var escape = false
-                    while (i < json.length) {
-                        val c = json[i]
-                        if (escape) {
-                            escape = false
-                        } else if (c == '\\') {
-                            escape = true
-                        } else if (c == '"') {
-                            return json.substring(start, i + 1)
-                        }
-                        i++
-                    }
-                    json.substring(start)
-                }
-                '{' -> {
-                    val start = i
-                    var depth = 0
-                    var inStr = false
-                    var escape = false
-                    while (i < json.length) {
-                        val c = json[i]
-                        if (escape) {
-                            escape = false
-                        } else if (c == '\\') {
-                            escape = true
-                        } else if (c == '"') {
-                            inStr = !inStr
-                        } else if (!inStr) {
-                            if (c == '{') depth++
-                            else if (c == '}') {
-                                depth--
-                                if (depth == 0) return json.substring(start, i + 1)
-                            }
-                        }
-                        i++
-                    }
-                    json.substring(start)
-                }
-                '[' -> {
-                    val start = i
-                    var depth = 0
-                    var inStr = false
-                    var escape = false
-                    while (i < json.length) {
-                        val c = json[i]
-                        if (escape) {
-                            escape = false
-                        } else if (c == '\\') {
-                            escape = true
-                        } else if (c == '"') {
-                            inStr = !inStr
-                        } else if (!inStr) {
-                            if (c == '[') depth++
-                            else if (c == ']') {
-                                depth--
-                                if (depth == 0) return json.substring(start, i + 1)
-                            }
-                        }
-                        i++
-                    }
-                    json.substring(start)
-                }
-                else -> {
-                    val start = i
-                    while (i < json.length && json[i] != ',' && json[i] != '}' && !json[i].isWhitespace()) {
-                        i++
-                    }
-                    json.substring(start, i)
-                }
-            }
-        }
-
-        fun parse(json: String): CameraResponse {
-            val trimmed = json.trim()
-            val msgId = extractInt(trimmed, "msg_id")
-            val rval = extractInt(trimmed, "rval")
-            val token = extractInt(trimmed, "token")
-            val type = extractString(trimmed, "type")
-            val param = extractValue(trimmed, "param")
-            return CameraResponse(
-                rawJson = trimmed,
-                msgId = msgId,
-                rval = rval,
-                param = param,
-                token = token,
-                type = type
-            )
+        fun parse(json: String): CameraPacket {
+            return Json.decodeFromString<CameraPacket>(json)
         }
     }
 }
@@ -169,7 +71,7 @@ data class CameraResponse(
 data class CameraSignal(
     val type: String,
     val param: String?,
-    val rawResponse: CameraResponse
+    val rawResponse: CameraPacket
 )
 
 /**
@@ -177,7 +79,7 @@ data class CameraSignal(
  * corresponding functions with the parameter from the `param` block.
  */
 open class CameraSignalDispatcher {
-    open fun onSignal(type: String, param: String?, rawResponse: CameraResponse) {
+    open fun onSignal(type: String, param: String?, rawResponse: CameraPacket) {
         when (type) {
             "battery" -> onBattery(param)
             "adapter" -> onAdapter(param)
@@ -300,8 +202,8 @@ class CameraClient(
     private val _currentToken = MutableStateFlow<Int?>(storage?.authToken?.toIntOrNull())
     val currentToken: StateFlow<Int?> = _currentToken.asStateFlow()
 
-    private val _responses = MutableSharedFlow<CameraResponse>(extraBufferCapacity = 64)
-    val responses: SharedFlow<CameraResponse> = _responses.asSharedFlow()
+    private val _responses = MutableSharedFlow<CameraPacket>(extraBufferCapacity = 64)
+    val responses: SharedFlow<CameraPacket> = _responses.asSharedFlow()
 
     private val _rawResponses = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val rawResponses: SharedFlow<String> = _rawResponses.asSharedFlow()
@@ -314,8 +216,8 @@ class CameraClient(
     private val typeHandlers = mutableMapOf<String, (String?) -> Unit>()
     private val anySignalHandlers = mutableListOf<(String, String?) -> Unit>()
 
-    private val pendingRequests = mutableMapOf<Int, CompletableDeferred<CameraResponse>>()
-    private var genericPendingRequest: CompletableDeferred<CameraResponse>? = null
+    private val pendingRequests = mutableMapOf<Int, CompletableDeferred<CameraPacket>>()
+    private var genericPendingRequest: CompletableDeferred<CameraPacket>? = null
 
     fun onSignal(type: String, handler: (param: String?) -> Unit) {
         typeHandlers[type] = handler
@@ -394,10 +296,10 @@ class CameraClient(
     }
 
     private fun handleIncomingPacket(jsonString: String) {
-        val response = CameraResponse.parse(jsonString)
+        val response = CameraPacket.parse(jsonString)
 
         if (response.msgId == MSG_START_SESSION && response.isSuccess) {
-            response.paramAsInt?.let { token ->
+            response.intParam?.let { token ->
                 _currentToken.value = token
                 storage?.authToken = token.toString()
             }
@@ -412,7 +314,7 @@ class CameraClient(
         // Type classification dispatch for signals
         val type = response.type
         if (type != null) {
-            val param = response.paramAsString ?: response.param
+            val param = response.strParam
             val signal = CameraSignal(type, param, response)
             _signals.tryEmit(signal)
 
@@ -439,27 +341,26 @@ class CameraClient(
     /**
      * Sends a raw JSON packet string over the socket and awaits the corresponding response.
      */
-    suspend fun sendPacket(json: String, timeoutMs: Long = 5000): CameraResponse {
+    suspend fun sendPacket(json: CameraPacket, timeoutMs: Long = 5000): CameraPacket {
         ensureConnected()
         return sendMutex.withLock {
             val write = writeChannel ?: error("Not connected to camera")
-            val msgId = CameraResponse.extractInt(json, "msg_id")
 
-            val deferred = CompletableDeferred<CameraResponse>()
-            if (msgId != null) {
-                pendingRequests[msgId] = deferred
+            val deferred = CompletableDeferred<CameraPacket>()
+            if (json.msgId != null) {
+                pendingRequests[json.msgId] = deferred
             } else {
                 genericPendingRequest = deferred
             }
 
             try {
-                write.writeFully(json.encodeToByteArray())
+                write.writeFully(json.toString().encodeToByteArray())
                 withTimeout(timeoutMs) {
                     deferred.await()
                 }
             } finally {
-                if (msgId != null) {
-                    pendingRequests.remove(msgId)
+                if (json.msgId != null) {
+                    pendingRequests.remove(json.msgId)
                 } else if (genericPendingRequest === deferred) {
                     genericPendingRequest = null
                 }
@@ -475,31 +376,27 @@ class CameraClient(
         param: String? = null,
         token: Int? = currentToken.value,
         timeoutMs: Long = 5000
-    ): CameraResponse {
+    ): CameraPacket {
         val effectiveToken = token ?: 0
-        val packet = buildString {
-            append("{\"msg_id\":$msgId,\"token\":$effectiveToken")
-            if (param != null) {
-                append(",\"param\":$param")
-            }
-            append("}")
-        }
+        val packet = CameraPacket(msgId = msgId, token = effectiveToken, param = JsonPrimitive(param))
         return sendPacket(packet, timeoutMs)
     }
 
     /**
      * Sends `{"msg_id":257,"token":0}` to start a session and acquire a session token.
      */
-    suspend fun startSession(timeoutMs: Long = 5000): CameraResponse {
-        return sendPacket("""{"msg_id":$MSG_START_SESSION,"token":0}""", timeoutMs)
+    suspend fun startSession(timeoutMs: Long = 5000): CameraPacket {
+        val packet = CameraPacket(msgId = MSG_START_SESSION, token = 0)
+        return sendPacket(packet, timeoutMs)
     }
 
     /**
      * Sends `{"msg_id":258,"token":<token>}` to end the active session.
      */
-    suspend fun stopSession(timeoutMs: Long = 5000): CameraResponse {
+    suspend fun stopSession(timeoutMs: Long = 5000): CameraPacket {
         val token = currentToken.value ?: 0
-        return sendPacket("""{"msg_id":$MSG_STOP_SESSION,"token":$token}""", timeoutMs).also {
+        val packet = CameraPacket(msgId = MSG_STOP_SESSION, token = token)
+        return sendPacket(packet, timeoutMs).also {
             _currentToken.value = null
             storage?.authToken = null
         }
@@ -508,8 +405,9 @@ class CameraClient(
     /**
      * Sends `{"msg_id":3,"token":<token>}` to retrieve all camera settings.
      */
-    suspend fun getAllSettings(timeoutMs: Long = 10000): CameraResponse {
+    suspend fun getAllSettings(timeoutMs: Long = 10000): CameraPacket {
         val token = currentToken.value ?: 0
-        return sendPacket("""{"msg_id":$MSG_GET_SETTINGS_ALL,"token":$token}""", timeoutMs)
+        val packet = CameraPacket(msgId = MSG_GET_SETTINGS_ALL, token = token)
+        return sendPacket(packet, timeoutMs)
     }
 }

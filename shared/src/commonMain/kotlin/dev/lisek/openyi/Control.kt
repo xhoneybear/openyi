@@ -90,7 +90,7 @@ fun Control() {
 
         // 257 observer collects signals and by type classification invokes functions with param
         cameraClient.signalDispatcher = object : CameraSignalDispatcher() {
-            override fun onSignal(type: String, param: String?, rawResponse: CameraResponse) {
+            override fun onSignal(type: String, param: String?, rawResponse: CameraPacket) {
                 super.onSignal(type, param, rawResponse)
                 println("Signal [$type]: param=$param")
             }
@@ -137,12 +137,12 @@ fun Control() {
                 cameraClient.connect()
                 // Send packet {"msg_id":257,"token":0} and observe response
                 val sessionResponse = cameraClient.startSession()
-                println("Session 257 response: ${sessionResponse.rawJson}")
+                println("Session 257 response: ${sessionResponse.toString()}")
 
                 // Send one with msg_id 3 and grab the response
-                val token = sessionResponse.paramAsInt ?: cameraClient.currentToken.value ?: 0
+                val token = sessionResponse.intParam ?: cameraClient.currentToken.value ?: 0
                 val settingsResponse = cameraClient.send(msgId = 3, token = token)
-                println("msg_id 3 response: ${settingsResponse.rawJson}")
+                println("msg_id 3 response: ${settingsResponse.toString()}")
             } catch (e: Exception) {
                 e.printStackTrace()
                 val errorDetails = e.message ?: e::class.simpleName ?: e.toString()
