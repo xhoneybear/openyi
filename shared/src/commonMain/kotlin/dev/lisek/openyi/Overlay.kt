@@ -71,7 +71,7 @@ enum class BatteryLevel(val icon: ImageVector, val chargingIcon: ImageVector) {
 }
 
 @Composable
-fun Overlay(cameraClient: CameraClient) {
+fun Overlay(cameraClient: CameraClient, playerState: RtspPlayerState) {
     var battery: BatteryLevel by remember { mutableStateOf(BatteryLevel.UNKNOWN) }
     var batteryLevel: String by remember { mutableStateOf("N/A") }
     var charging: Boolean by remember { mutableStateOf(false) }
@@ -122,6 +122,10 @@ fun Overlay(cameraClient: CameraClient) {
                 tint = Color.White
             )
         }
+        playerState.icon(Modifier
+            .padding(4.dp)
+            .align(Alignment.BottomStart)
+        )
         IconButton(
             onClick = { /* Handle charging icon click */ },
             modifier = Modifier

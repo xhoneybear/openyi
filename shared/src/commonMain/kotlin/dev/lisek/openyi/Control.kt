@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,15 +73,27 @@ enum class TimerDuration(val duration: Int, val icon: ImageVector) {
 
 @Composable
 fun Control() {
-    var playerState by remember { mutableStateOf(RtspPlayerState.Idle) }
+    var playerState by remember { mutableStateOf(RtspPlayerState.Disconnected) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isRetrying by remember { mutableStateOf(false) }
     var restartToken by remember { mutableStateOf(0) }
-    var hasStarted by remember { mutableStateOf(false) }
+    var reconnectJob by remember { mutableStateOf<Job?>(null) }
     var recordMode by remember { mutableStateOf(false) }
+    var isRecording by remember { mutableStateOf(false) }
     var timer by remember { mutableStateOf(TimerDuration.OFF) }
 
+    val coroutineScope = rememberCoroutineScope()
     val cameraClient = remember { CameraClient.shared }
     val responses = remember { mutableStateListOf<String>() }
+
+    LaunchedEffect(isRecording) {
+        if (!isRecording) {
+            reconnectJob?.cancel()
+            isRetrying = false
+            errorMessage = null
+            playerState = RtspPlayerState.Disconnected
+        }
+    }
 
     LaunchedEffect(Unit) {
         // Collect all incoming raw JSON-formatted signals and responses
@@ -113,10 +128,12 @@ fun Control() {
 
             override fun onVideoRecordComplete(param: String?) {
                 println("Video record complete: param=$param")
+                isRecording = false
             }
 
             override fun onStartVideoRecord(param: String?) {
                 println("Start video record: param=$param")
+                isRecording = true
             }
 
             override fun onVfStart(param: String?) {
@@ -296,42 +313,57 @@ fun Control() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box {
-                RtspPreview(
-                    url = "rtsp://192.168.42.1:554/live",
-                    restartToken = restartToken,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .background(Color.Black),
-                    onStateChanged = { state ->
+                if (isRecording) {
+                    RtspPreview(
+                        url = "rtsp://192.168.42.1:554/live",
+                        restartToken = restartToken,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .background(Color.Black)
+                    ) { state ->
                         playerState = state
                         when (state) {
-                            RtspPlayerState.Buffering,
-                            RtspPlayerState.Playing -> {
-                                hasStarted = true
-                                errorMessage = null
+                            RtspPlayerState.Buffering -> {
+                                if (!isRetrying) {
+                                    errorMessage = null
+                                }
                             }
+                            RtspPlayerState.Playing -> {
+                                isRetrying = false
+                                errorMessage = null
+                                reconnectJob?.cancel()
+                            }
+                            RtspPlayerState.Disconnected,
                             RtspPlayerState.Idle,
                             RtspPlayerState.Error -> {
-                                errorMessage = if (state == RtspPlayerState.Error) {
-                                    "Unable to decode the RTSP stream"
+                                val failureReason = if (state == RtspPlayerState.Error) {
+                                    "Unable to decode RTSP stream"
                                 } else {
-                                    null
+                                    "Stream disconnected"
                                 }
-                                if (hasStarted) {
-                                    hasStarted = false
-                                    restartToken += 1
+                                if (isRecording && reconnectJob?.isActive != true) {
+                                    isRetrying = true
+                                    errorMessage = "$failureReason. Reconnecting in 5s..."
+                                    
+                                    reconnectJob = coroutineScope.launch {
+                                        delay(5000L)
+                                        restartToken += 1
+                                    }
                                 }
                             }
                         }
                     }
-                )
-                Overlay(cameraClient)
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .background(Color.Black)
+                    )
+                }
+                Overlay(cameraClient, playerState)
             }
-            Text(
-                playerState.label,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
             errorMessage?.let {
                 Text(
                     it,
@@ -371,11 +403,3 @@ fun Control() {
         }
     }
 }
-
-private val RtspPlayerState.label: String
-    get() = when (this) {
-        RtspPlayerState.Idle -> "Preview idle"
-        RtspPlayerState.Buffering -> "Buffering stream..."
-        RtspPlayerState.Playing -> "Playing"
-        RtspPlayerState.Error -> "Preview error"
-    }
