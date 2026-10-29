@@ -14,10 +14,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.roundedfilled.Android_cell_4_bar_off
 import com.composables.icons.materialsymbols.roundedfilled.Check
 import com.composables.icons.materialsymbols.roundedfilled.Error
 import com.composables.icons.materialsymbols.roundedfilled.Signal_disconnected
-import com.composables.icons.materialsymbols.roundedfilled.Warning
 
 @Composable
 expect fun RtspPreview(
@@ -37,7 +37,7 @@ enum class RtspPlayerState {
     @Composable
     fun icon(modifier: Modifier = Modifier, tint: Color = Color.White) = when (this) {
         Disconnected -> Icon(MaterialSymbols.RoundedFilled.Signal_disconnected, null, modifier, tint)
-        Idle -> Icon(MaterialSymbols.RoundedFilled.Warning, null, modifier, tint)
+        Idle -> Icon(MaterialSymbols.RoundedFilled.Android_cell_4_bar_off, null, modifier, tint)
         Buffering -> DotsPulsing(modifier, tint)
         Playing -> RecordingIndicator(modifier, tint)
         Error -> Icon(MaterialSymbols.RoundedFilled.Error, null, modifier, tint)

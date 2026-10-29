@@ -47,13 +47,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.roundedfilled.Close
 import com.composables.icons.materialsymbols.roundedfilled.Photo_camera
+import com.composables.icons.materialsymbols.roundedfilled.Refresh
+import com.composables.icons.materialsymbols.roundedfilled.Sd_card_alert
 import com.composables.icons.materialsymbols.roundedfilled.Settings
 import com.composables.icons.materialsymbols.roundedfilled.Timer_10_alt_1
 import com.composables.icons.materialsymbols.roundedfilled.Timer_3_alt_1
 import com.composables.icons.materialsymbols.roundedfilled.Timer_5
 import com.composables.icons.materialsymbols.roundedfilled.Timer_off
 import com.composables.icons.materialsymbols.roundedfilled.Videocam
+import com.composables.icons.materialsymbols.roundedfilled.Warning
 
 enum class TimerDuration(val duration: Int, val icon: ImageVector) {
     OFF(0, MaterialSymbols.RoundedFilled.Timer_off),
@@ -74,13 +78,12 @@ enum class TimerDuration(val duration: Int, val icon: ImageVector) {
 @Composable
 fun Control() {
     var playerState by remember { mutableStateOf(RtspPlayerState.Disconnected) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isRetrying by remember { mutableStateOf(false) }
-    var restartToken by remember { mutableStateOf(0) }
-    var reconnectJob by remember { mutableStateOf<Job?>(null) }
+    var timer by remember { mutableStateOf(TimerDuration.OFF) }
     var recordMode by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
-    var timer by remember { mutableStateOf(TimerDuration.OFF) }
+    var restartToken by remember { mutableStateOf(0) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var sdCardMessage by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
     val cameraClient = remember { CameraClient.shared }
@@ -88,9 +91,6 @@ fun Control() {
 
     LaunchedEffect(isRecording) {
         if (!isRecording) {
-            reconnectJob?.cancel()
-            isRetrying = false
-            errorMessage = null
             playerState = RtspPlayerState.Disconnected
         }
     }
@@ -120,6 +120,11 @@ fun Control() {
 
             override fun onSdCardStatus(param: String?) {
                 println("SD card status: param=$param")
+                if (param == "STORAGE_FULL") {
+                    sdCardMessage = "SD card full. Please free up space."
+                } else if (param == "LOW_SPEED_CARD") {
+                    sdCardMessage = "SD card slow. Quality may be affected."
+                }
             }
 
             override fun onPhotoTaken(param: String?) {
@@ -306,11 +311,9 @@ fun Control() {
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
         ) {
             Box {
                 if (isRecording) {
@@ -324,32 +327,17 @@ fun Control() {
                     ) { state ->
                         playerState = state
                         when (state) {
-                            RtspPlayerState.Buffering -> {
-                                if (!isRetrying) {
-                                    errorMessage = null
-                                }
-                            }
-                            RtspPlayerState.Playing -> {
-                                isRetrying = false
-                                errorMessage = null
-                                reconnectJob?.cancel()
-                            }
                             RtspPlayerState.Disconnected,
+                            RtspPlayerState.Buffering,
+                            RtspPlayerState.Playing -> {
+                                errorMessage = null
+                            }
                             RtspPlayerState.Idle,
                             RtspPlayerState.Error -> {
-                                val failureReason = if (state == RtspPlayerState.Error) {
-                                    "Unable to decode RTSP stream"
+                                errorMessage = if (state == RtspPlayerState.Error) {
+                                    "Unable to decode RTSP stream!"
                                 } else {
-                                    "Stream disconnected"
-                                }
-                                if (isRecording && reconnectJob?.isActive != true) {
-                                    isRetrying = true
-                                    errorMessage = "$failureReason. Reconnecting in 5s..."
-                                    
-                                    reconnectJob = coroutineScope.launch {
-                                        delay(5000L)
-                                        restartToken += 1
-                                    }
+                                    "Connection lost. Dismiss to retry."
                                 }
                             }
                         }
@@ -365,11 +353,25 @@ fun Control() {
                 Overlay(cameraClient, playerState)
             }
             errorMessage?.let {
-                Text(
-                    it,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
+                statusStrip(
+                    icon = MaterialSymbols.RoundedFilled.Warning,
+                    dismissIcon = MaterialSymbols.RoundedFilled.Refresh,
+                    message = it,
+                    tint = MaterialTheme.colorScheme.errorContainer,
+                ) {
+                    restartToken++
+                    errorMessage = null
+                }
+            }
+            sdCardMessage?.let {
+                statusStrip(
+                    icon = MaterialSymbols.RoundedFilled.Sd_card_alert,
+                    dismissIcon = MaterialSymbols.RoundedFilled.Close,
+                    message = it,
+                    tint = Color(255, 240, 215)
+                ) {
+                    sdCardMessage = null
+                }
             }
 
             // Print the collected responses in control body
@@ -377,7 +379,7 @@ fun Control() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 16.dp),
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
@@ -400,6 +402,41 @@ fun Control() {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun statusStrip(icon: ImageVector, dismissIcon: ImageVector, message: String, tint: Color, modifier: Modifier = Modifier, onDismiss: () -> Unit = {}) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(tint)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        IconButton(
+            modifier = Modifier.size(24.dp),
+            onClick = onDismiss
+        ) {
+            Icon(
+                imageVector = dismissIcon,
+                contentDescription = "Dismiss"
+            )
         }
     }
 }
