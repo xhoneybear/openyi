@@ -10,7 +10,7 @@ OpenYi is a cross-platform alternative application for the Yi Action Camera. It 
 >
 > Appropriate warnings are displayed when accessing potentially unsafe features. **Safety of your camera lies in your hands to use those features carefully**.
 >
-> #### The developer assumes no liability for any damage caused by the use of this application.
+> **The developer assumes no liability for any damage caused by the use of this application.**
 
 ## Features
 
@@ -60,17 +60,87 @@ OpenYi is a cross-platform alternative application for the Yi Action Camera. It 
 > [!NOTE]
 > Partial support excludes support for some advanced features that rely on memory injection, such as bitrate and resolution control. Basic features and most of the extended features should work fine.
 
-#### Full support for all Yi Action Cameras across all firmware versions is a goal and will be extended in future versions of the software. Contributions are very much welcome.
+**Full support for all Yi Action Cameras across all firmware versions is a goal and will be extended in future versions of the software. Contributions are very much welcome.**
 
 While not a primary goal, other cameras based on the Ambarella SoCs (like older GoPro Hero models) are very much welcome to be supported via community contributions.
 
 ## Building
 
-\<TBD>
+> [!TIP]
+>
+> Use `./gradlew` in bash/zsh (Linux, Mac, BSD etc.)
+>
+> Use `gradlew.bat` in Windows.
+
+### Android
+
+#### Prerequisites
+
+- **JDK 17** or higher (JDK 21 recommended)
+- **Android SDK** (API `37` platforms and build-tools)
+- `ANDROID_HOME` environment variable set to your Android SDK location (or `sdk.dir` defined in `local.properties`)
+
+#### Commands
+
+- **Build Debug APK:**
+  ```bash
+  ./gradlew :androidApp:assembleDebug
+  ```
+  Output: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
+
+- **Build Release APK:**
+  ```bash
+  ./gradlew :androidApp:assembleRelease
+  ```
+  Output: `androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk`
+
+- **Install & run on a device/emulator:**
+  ```bash
+  ./gradlew :androidApp:installDebug
+  ```
+
+### iOS
+
+*Builds for iOS are currently not a priority due to limited development time. At this stage, the project will most likely not compile. This will be addressed once all the core features are implemented.*
+
+#### Prerequisites
+
+- **macOS** with **Xcode** (and Xcode Command Line Tools)
+- **JDK 17** or higher (JDK 21 recommended)
+- (Required for physical device) Apple Developer Team ID set in `iosApp/Configuration/Config.xcconfig` (`TEAM_ID`)
+
+#### Commands
+
+- **Build for iOS Simulator:**
+  ```bash
+  xcodebuild -project iosApp/iosApp.xcodeproj \
+    -scheme iosApp \
+    -configuration Debug \
+    -destination 'generic/platform=iOS Simulator' \
+    build
+  ```
+
+- **Build Release for iOS Device:**
+  ```bash
+  xcodebuild -project iosApp/iosApp.xcodeproj \
+    -scheme iosApp \
+    -configuration Release \
+    -destination 'generic/platform=iOS' \
+    build
+  ```
+
+- **Build shared Kotlin framework directly:**
+  ```bash
+  # Simulator (ARM64)
+  ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
+
+  # Device (ARM64)
+  ./gradlew :shared:linkDebugFrameworkIosArm64
+  ```
 
 ## Contributing
 
-### Thank you for contributing to OpenYi!
+**Thank you for contributing to OpenYi!**
 
 Contribution guidelines are minimal and mostly handled by Git hooks.
 
